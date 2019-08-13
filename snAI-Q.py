@@ -2,7 +2,9 @@
 # @Author: pedrotorres
 # @Date:   2019-08-07 14:04:45
 # @Last Modified by:   Pedro Torres
-# @Last Modified time: 2019-08-08 23:56:12
+# @Last Modified time: 2019-08-13 17:49:52
+
+from scipy.spatial import distance
 
 import sys
 from random import randrange, randint
@@ -23,11 +25,8 @@ LEFT = 4
 RIGHT = 6
 UP = 8
 
-WIDTH = 400
-HEIGHT = 400
-
-snake = [(200, 200), (210, 200), (220, 200)]
-snake_direction = LEFT
+WIDTH = 200
+HEIGHT = 200
 
 class app(object):
 	"""docstring for app"""
@@ -90,13 +89,13 @@ class app(object):
 			# game over
 			if self.game_over(snake.structure[0]):
 				self.ended = True
-				print('game over 1')
+				# print('game over 1')
 				# break
 
 			# print(snake.structure)
 			if snake.hit_itself():
 				self.ended = True
-				print('game over 2')
+				# print('game over 2')
 				# break
 
 	def display_interface(self, snake, apple):
@@ -118,18 +117,18 @@ class app(object):
 			pygame.draw.rect(self.display, GREEN, (0, y, 10, 10))
 			pygame.draw.rect(self.display, GREEN, (WIDTH - 10, y, 10, 10))
 		
-		# # grid
-		# for x in range(0, WIDTH, 10): # Draw vertical lines
-		# 	pygame.draw.line(self.display, (40, 40, 40), (x, 0), (x, HEIGHT))
+		# grid
+		for x in range(0, WIDTH, 10): # Draw vertical lines
+			pygame.draw.line(self.display, (40, 40, 40), (x, 0), (x, HEIGHT))
 		
-		# for y in range(0, HEIGHT, 10): # Draw vertical lines
-		# 	pygame.draw.line(self.display, (40, 40, 40), (0, y), (WIDTH, y))
+		for y in range(0, HEIGHT, 10): # Draw vertical lines
+			pygame.draw.line(self.display, (40, 40, 40), (0, y), (WIDTH, y))
 
 		pygame.display.update()
 
 class snake(object):
 	def __init__(self):
-		self.structure = [(200, 200), (210, 200), (220, 200)]
+		self.structure = [(100, 100), (110, 100), (120, 50)]
 		self.direction = LEFT
 		self.skin = pygame.Surface((10, 10))
 		self.food_score = 0
@@ -158,7 +157,7 @@ def initialize_game(app, snake, apple, agent):
 	second_food_score = snake.food_score
 	# print(second_state)
 
-	reward = agent.set_reward(inital_food_score != second_food_score, app.ended)
+	reward = agent.set_reward(snake, apple, inital_food_score != second_food_score, app.ended)
 	agent.remember(initial_state, action, reward, second_state, app.ended)
 	agent.replay()
 
@@ -179,6 +178,29 @@ def move(action, snake):
 		if snake_obj.direction == LEFT or snake_obj.direction == RIGHT:
 			snake_obj.direction = DOWN
 
+def manual_move(snake_obj):
+	for event in pygame.event.get():
+		if event.type == QUIT:
+			pygame.quit()
+			sys.exit()
+
+		if event.type == KEYDOWN:
+			if event.key == K_UP:
+				if snake_obj.direction == LEFT or snake_obj.direction == RIGHT:
+					snake_obj.direction = UP
+
+			if event.key == K_DOWN:
+				if snake_obj.direction == LEFT or snake_obj.direction == RIGHT:
+					snake_obj.direction = DOWN
+
+			if event.key == K_LEFT:
+				if snake_obj.direction == UP or snake_obj.direction == DOWN:
+					snake_obj.direction = LEFT
+
+			if event.key == K_RIGHT:
+				if snake_obj.direction == UP or snake_obj.direction == DOWN:
+					snake_obj.direction = RIGHT
+
 class apple(object):
 	def __init__(self):
 		self.skin = pygame.Surface((10, 10))
@@ -194,59 +216,76 @@ if __name__ == "__main__":
 
 	pygame.init()
 
-	# for j in range(1):
 	counter_games = 0
 	agent_obj = Q.agent()
 
-	while counter_games < 100:
+	max_score = 0
+
+	while counter_games < 500:
 		app_obj = app()
 		snake_obj = snake()
 		apple_obj = apple()
 
-		initialize_game(app_obj, snake_obj, apple_obj, agent_obj)
+		# initialize_game(app_obj, snake_obj, apple_obj, agent_obj)
+		n_moves = 0
+		flag_food = False
 
 		while not app_obj.ended:
+			# app_obj.clock.tick(4)
+			
+			# manual_move(snake_obj)
+			# app_obj.update(snake_obj, apple_obj)
+			# app_obj.display_interface(snake_obj, apple_obj)
+			# # print(agent_obj.get_state(snake_obj, apple_obj))
+			# # print(1 - (distance.euclidean(snake_obj.structure[0], apple_obj.pos) // 100))
+			# print(1 / (distance.euclidean(snake_obj.structure[0], apple_obj.pos) // 10))
 		
-			# while True:
-				
-			app_obj.clock.tick(150)
 
-			agent_obj.epsilon = 80 - counter_games
+			agent_obj.epsilon = 90 - counter_games
+			
 			if (agent_obj.epsilon < 0):
 				agent_obj.epsilon = 0
 
-			            #get old state
+			#get old state
 			state_old = agent_obj.get_state(snake_obj, apple_obj)
+			# print('old: {}'.format(state_old))
 			inital_food_score = snake_obj.food_score
 				
-			if randint(0, 200) < agent_obj.epsilon:
+			if randint(0, 100) < agent_obj.epsilon:
 				final_move = to_categorical(randint(0, 2), num_classes=4)
 			else:
-				prediction = agent_obj.model.predict(np.array(state_old).reshape((1,12)))
+				prediction = agent_obj.model.predict(np.array(state_old).reshape((1, 12)))
 				final_move = to_categorical(np.argmax(prediction[0]), num_classes=4)
 
 			move(final_move, snake_obj)
-			# player.do_move(action, player.x, player.y, game, food, agent)
+			n_moves += 1
 			app_obj.update(snake_obj, apple_obj)
 			app_obj.display_interface(snake_obj, apple_obj)
 			new_state = agent_obj.get_state(snake_obj, apple_obj)
 			second_food_score = snake_obj.food_score
 
-			reward = agent_obj.set_reward(inital_food_score != second_food_score, app_obj.ended)
+			flag_food = inital_food_score != second_food_score
+
+			if (n_moves == 200):
+				app_obj.ended = True
+				print('loop?')
+
+			if flag_food:
+				n_moves = 0
+
+			reward = agent_obj.set_reward(snake_obj, apple_obj, flag_food, app_obj.ended)
 
 			agent_obj.train_short_memory(state_old, final_move, reward, new_state, app_obj.ended)
 
 			agent_obj.remember(state_old, final_move, reward, new_state, app_obj.ended)
 
-		agent_obj.ended = False
 		agent_obj.replay()
+		agent_obj.ended = False
 		counter_games += 1
-			# app_obj.update(snake_obj, apple_obj)
-
-			# app_obj.display_interface(snake_obj, apple_obj)
-
-
-
-			# update screen start here
-
+		print('gn: {} | gamescore: {}'.format(counter_games, snake_obj.food_score))		
+		if (max_score < snake_obj.food_score):
+			max_score = snake_obj.food_score
+	
+	print(max_score)
+	agent_obj.model.save_weights('weights.hdf5')
 			
