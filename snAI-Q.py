@@ -2,9 +2,7 @@
 # @Author: pedrotorres
 # @Date:   2019-08-07 14:04:45
 # @Last Modified by:   Pedro Torres
-# @Last Modified time: 2019-08-13 17:49:52
-
-from scipy.spatial import distance
+# @Last Modified time: 2019-08-15 11:27:46
 
 import sys
 from random import randrange, randint
@@ -29,7 +27,7 @@ WIDTH = 200
 HEIGHT = 200
 
 class app(object):
-	"""docstring for app"""
+	
 	def __init__(self):
 		self.display_width = WIDTH
 		self.display_height = HEIGHT
@@ -86,17 +84,12 @@ class app(object):
 			if snake.direction == RIGHT:
 				snake.structure[0] = (snake.structure[0][0] + 10, snake.structure[0][1])
 			
-			# game over
+			# game over conditions
 			if self.game_over(snake.structure[0]):
 				self.ended = True
-				# print('game over 1')
-				# break
 
-			# print(snake.structure)
 			if snake.hit_itself():
 				self.ended = True
-				# print('game over 2')
-				# break
 
 	def display_interface(self, snake, apple):
 		app_obj.display.fill(app_obj.window_color)
@@ -128,7 +121,7 @@ class app(object):
 
 class snake(object):
 	def __init__(self):
-		self.structure = [(100, 100), (110, 100), (120, 50)]
+		self.structure = [(100, 100), (110, 100), (120, 100)]
 		self.direction = LEFT
 		self.skin = pygame.Surface((10, 10))
 		self.food_score = 0
@@ -145,7 +138,6 @@ class snake(object):
 def initialize_game(app, snake, apple, agent):
 	initial_state = agent.get_state(snake, apple)
 	inital_food_score = snake.food_score
-	# print(initial_state)
 	
 	# left, right, up, down
 	action = [1, 0, 0, 0]
@@ -208,7 +200,7 @@ class apple(object):
 		self.skin.fill(RED)
 
 	def generate_pos(self):
-		# -1 to now spawn on horizontal and vertical bars
+		# -1 to not spawn on horizontal and vertical bars
 		return (randrange(1, (WIDTH // 10) - 1) * 10, randrange(1, (HEIGHT // 10) - 1) * 10)
 
 
@@ -221,24 +213,30 @@ if __name__ == "__main__":
 
 	max_score = 0
 
-	while counter_games < 500:
+	while counter_games < 1000:
 		app_obj = app()
 		snake_obj = snake()
 		apple_obj = apple()
+
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
+		# snake_obj.structure.append((0,0))
 
 		# initialize_game(app_obj, snake_obj, apple_obj, agent_obj)
 		n_moves = 0
 		flag_food = False
 
 		while not app_obj.ended:
-			# app_obj.clock.tick(4)
+			# app_obj.clock.tick(8)
 			
 			# manual_move(snake_obj)
 			# app_obj.update(snake_obj, apple_obj)
 			# app_obj.display_interface(snake_obj, apple_obj)
-			# # print(agent_obj.get_state(snake_obj, apple_obj))
-			# # print(1 - (distance.euclidean(snake_obj.structure[0], apple_obj.pos) // 100))
-			# print(1 / (distance.euclidean(snake_obj.structure[0], apple_obj.pos) // 10))
+			# print(agent_obj.get_state(snake_obj, apple_obj)[-4:])
 		
 
 			agent_obj.epsilon = 90 - counter_games
@@ -254,19 +252,23 @@ if __name__ == "__main__":
 			if randint(0, 100) < agent_obj.epsilon:
 				final_move = to_categorical(randint(0, 2), num_classes=4)
 			else:
-				prediction = agent_obj.model.predict(np.array(state_old).reshape((1, 12)))
+				prediction = agent_obj.model.predict(np.array(state_old).reshape((1, 16)))
 				final_move = to_categorical(np.argmax(prediction[0]), num_classes=4)
 
 			move(final_move, snake_obj)
 			n_moves += 1
 			app_obj.update(snake_obj, apple_obj)
+
+			# print(agent_obj.get_state(snake_obj, apple_obj))
+			# print(agent_obj.get_state(snake_obj, apple_obj)[-4:])
+
 			app_obj.display_interface(snake_obj, apple_obj)
 			new_state = agent_obj.get_state(snake_obj, apple_obj)
 			second_food_score = snake_obj.food_score
 
 			flag_food = inital_food_score != second_food_score
 
-			if (n_moves == 200):
+			if (n_moves == 250):
 				app_obj.ended = True
 				print('loop?')
 
